@@ -7,8 +7,8 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif}
-body{display:flex;align-items:center;justify-content:center}
-#gameShell{position:relative;width:min(100vw,calc(100vh * 1080 / 1920));height:min(100vh,calc(100vw * 1920 / 1080));background:#000;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;width:100vw;height:100vh;overflow:hidden}
+#gameShell{position:relative;width:1080px;height:1920px;background:#000;overflow:hidden;transform-origin:center center;transform:scale(var(--game-scale,1))}
 .page{position:absolute;inset:0;display:none;width:100%;height:100%;overflow:hidden;background-position:center;background-size:cover;background-repeat:no-repeat}
 .page.active{display:block}
 .center-column{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center}
@@ -113,6 +113,15 @@ body{display:flex;align-items:center;justify-content:center}
 
 <script>
 const W=1080,H=1920;
+
+function resizeGameShell(){
+  const scale=Math.min(window.innerWidth/W,window.innerHeight/H);
+  document.documentElement.style.setProperty("--game-scale",scale);
+}
+window.addEventListener("resize",resizeGameShell);
+window.addEventListener("orientationchange",resizeGameShell);
+resizeGameShell();
+
 const ASSET_ROOTS=["./assets/","./"];
 
 const ASSET_NAMES=[
@@ -194,7 +203,7 @@ const dom={
 
 const canvas=document.getElementById("gameCanvas");
 const ctx=canvas.getContext("2d");
-const STORAGE_KEY="douwa_jump_history_v7";
+const STORAGE_KEY="douwa_jump_history_v8";
 
 const SCENES=[
   {id:"beach",name:"夏日沙滩",bg:"game-background01.png",platforms:["pingtai01.png","pingtai02.png","pingtai03.png"],obstacles:["obstacle01.png","obstacle02.png"],recover:"recover01.png"},
@@ -765,8 +774,7 @@ function getProcessedCharacterImage(image){
 
     const imageData=offCtx.getImageData(0,0,sourceW,sourceH);
     const data=imageData.data;
-    const total=sourceW*sourceH;
-    const visited=new Uint8Array(total);
+    const visited=new Uint8Array(sourceW*sourceH);
     const queue=[];
 
     function pushIfBackground(x,y){
@@ -1217,6 +1225,8 @@ function initEvents(){
 }
 
 async function boot(){
+  resizeGameShell();
+
   await preloadAssets();
 
   applyUiImages();
