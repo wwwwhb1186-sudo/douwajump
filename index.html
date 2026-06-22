@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>豆娃跳跳乐</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#111;font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif}
+body{display:flex;align-items:center;justify-content:center}
+#gameShell{position:relative;width:min(100vw,calc(100vh * 1080 / 1920));height:min(100vh,calc(100vw * 1920 / 1080));background:#000;overflow:hidden}
+.page{position:absolute;inset:0;display:none;width:100%;height:100%;overflow:hidden;background-position:center;background-size:cover;background-repeat:no-repeat}
+.page.active{display:block}
+.center-column{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center}
+.img-btn,.img-title{background-position:center;background-size:contain;background-repeat:no-repeat}
+.img-btn{cursor:pointer;transition:transform .12s ease,filter .12s ease,opacity .12s ease}
+.img-btn:active{transform:scale(.95)}
+.disabled-gray{filter:grayscale(1) brightness(.68);opacity:.58}
+.selected-glow{filter:drop-shadow(0 0 22px #fff65a) drop-shadow(0 0 34px #ffb300) drop-shadow(0 0 46px rgba(255,179,0,.65));transform:scale(1.045)}
+#homePage .home-stack{top:11.5%;gap:58px}
+#homeTitle{width:880px;height:430px}
+#startBtn,#historyBtn{width:560px;height:185px}
+.top-title{position:absolute;top:5.2%;left:50%;transform:translateX(-50%);width:860px;height:245px}
+.bottom-left-btn{position:absolute;left:6%;bottom:5.2%;width:310px;height:135px;z-index:5}
+.bottom-right-btn{position:absolute;right:6%;bottom:5.2%;width:345px;height:145px;z-index:5}
+#characterGrid{position:absolute;left:50%;top:23%;transform:translateX(-50%);width:920px;display:grid;grid-template-columns:repeat(2,1fr);gap:58px 58px;justify-items:center;align-items:center}
+.character-btn{width:405px;height:485px}
+#mapList{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:920px;display:flex;flex-direction:column;align-items:center;gap:46px}
+.map-btn{width:850px;height:320px}
+#gameCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;background:#9ed9ff}
+#gameHud{position:absolute;inset:0;pointer-events:none;z-index:10}
+.hud-block{position:absolute;pointer-events:none;color:#fff;text-shadow:0 4px 0 rgba(0,0,0,.35),0 0 10px rgba(0,0,0,.5);font-weight:900}
+#scoreHud{left:28px;top:24px;width:270px;height:95px;display:flex;align-items:center;justify-content:center;padding-left:70px;font-size:36px;background-position:center;background-size:contain;background-repeat:no-repeat}
+#hpHud{left:28px;top:122px;width:270px;height:95px;display:flex;align-items:center;justify-content:center;padding-left:58px;font-size:30px;letter-spacing:-3px;background-position:center;background-size:contain;background-repeat:no-repeat}
+.hp-heart{color:#ff2f4f;text-shadow:0 2px 0 #fff,0 3px 4px rgba(0,0,0,.28)}
+.hp-heart-empty{color:rgba(255,255,255,.9);text-shadow:0 2px 0 rgba(120,80,60,.45),0 3px 4px rgba(0,0,0,.2)}
+#gameTopBtns{position:absolute;top:24px;right:24px;display:flex;gap:14px;pointer-events:auto;z-index:20}
+.game-top-btn{width:116px;height:92px}
+#pauseMask{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:30;background:rgba(0,0,0,.35);pointer-events:auto}
+#pauseMask.active{display:flex}
+#pauseText{width:520px;padding:34px 30px;border-radius:28px;background:rgba(255,207,74,.95);color:#7b3b00;font-size:58px;font-weight:900;text-align:center;border:8px solid #fff2a5;box-shadow:0 8px 30px rgba(0,0,0,.28)}
+#modalMask{position:absolute;inset:0;display:none;z-index:100;background:rgba(0,0,0,.56);align-items:center;justify-content:center;padding:40px}
+#modalMask.active{display:flex}
+#modalBox{width:88%;max-height:76%;overflow:hidden;border-radius:34px;background:#fff5c9;border:10px solid #ffb73f;box-shadow:0 10px 40px rgba(0,0,0,.38);color:#6d3400;display:flex;flex-direction:column}
+#modalTitle{padding:28px 32px 12px;font-size:46px;font-weight:900;text-align:center;color:#8d3c00}
+#modalContent{padding:20px 34px 28px;overflow-y:auto;font-size:30px;line-height:1.55;text-align:center}
+#modalActions{display:flex;justify-content:center;gap:26px;padding:0 28px 32px;flex-wrap:wrap}
+.modal-btn{min-width:210px;height:82px;border:none;border-radius:24px;background:linear-gradient(#ffd966,#ffae2b);color:#713000;font-size:32px;font-weight:900;box-shadow:0 6px 0 #c26b12;cursor:pointer}
+.modal-btn:active{transform:translateY(4px);box-shadow:0 2px 0 #c26b12}
+.history-table{width:100%;border-collapse:collapse;font-size:24px;text-align:center}
+.history-table th,.history-table td{border-bottom:2px dashed rgba(141,60,0,.28);padding:12px 6px}
+.history-table th{font-size:26px;color:#9d4300}
+#tipBar{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:12;width:88%;padding:12px 18px;border-radius:999px;background:rgba(0,0,0,.28);color:#fff;font-size:22px;text-align:center;pointer-events:none;text-shadow:0 2px 4px rgba(0,0,0,.35)}
+@media(max-width:600px){#tipBar{font-size:12px}}
+</style>
+</head>
+<body>
+<div id="gameShell">
+  <section id="homePage" class="page active">
+    <div class="home-stack center-column">
+      <div id="homeTitle" class="img-title"></div>
+      <div id="startBtn" class="img-btn"></div>
+      <div id="historyBtn" class="img-btn"></div>
+    </div>
+  </section>
+
+  <section id="characterPage" class="page">
+    <div id="characterTitle" class="top-title img-title"></div>
+    <div id="characterGrid">
+      <div class="img-btn character-btn" data-character="0"></div>
+      <div class="img-btn character-btn" data-character="1"></div>
+      <div class="img-btn character-btn" data-character="2"></div>
+      <div class="img-btn character-btn" data-character="3"></div>
+    </div>
+    <div id="characterBackBtn" class="img-btn bottom-left-btn"></div>
+    <div id="characterPickBtn" class="img-btn bottom-right-btn"></div>
+  </section>
+
+  <section id="mapPage" class="page">
+    <div id="mapTitle" class="top-title img-title"></div>
+    <div id="mapList">
+      <div class="img-btn map-btn" data-map="0"></div>
+      <div class="img-btn map-btn" data-map="1"></div>
+      <div class="img-btn map-btn" data-map="2"></div>
+    </div>
+    <div id="mapBackBtn" class="img-btn bottom-left-btn"></div>
+    <div id="enterGameBtn" class="img-btn bottom-right-btn"></div>
+  </section>
+
+  <section id="gamePage" class="page">
+    <canvas id="gameCanvas" width="1080" height="1920"></canvas>
+    <div id="gameHud">
+      <div id="scoreHud" class="hud-block">0</div>
+      <div id="hpHud" class="hud-block"></div>
+      <div id="gameTopBtns">
+        <div id="backHomeBtn" class="img-btn game-top-btn"></div>
+        <div id="restartBtn" class="img-btn game-top-btn"></div>
+        <div id="pauseBtn" class="img-btn game-top-btn"></div>
+      </div>
+      <div id="tipBar">方向键控制移动；空格键跳跃，空中再按一次空格可二段跳；金币 +10 分。</div>
+      <div id="pauseMask"><div id="pauseText">已暂停</div></div>
+    </div>
+  </section>
+
+  <div id="modalMask">
+    <div id="modalBox">
+      <div id="modalTitle"></div>
+      <div id="modalContent"></div>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const W=1080,H=1920;
+const ASSET_ROOTS=["./assets/","./"];
+
+const ASSET_NAMES=[
+"home-background.png","title.png","start.png","history.png",
+"select-background.png","select-character.png","select-map.png","goback.png","pick.png","enter.png",
+"character01.png","character02.png","character03.png","character04.png",
+"map1.png","map2.png","map3.png",
+"game-background01.png","game-background02.png","game-background03.png",
+"scores.png","hp.png","back.png","again.png","stop.png",
+"coin.png",
+"douwa01.png","douwa02.png","douwa03.png","douwa04.png","douwa05.png","douwa06.png","douwa07.png","douwa09.png",
+"pingtai01.png","pingtai02.png","pingtai03.png","pingtai04.png","pingtai05.png","pingtai06.png","pingtai07.png","pingtai08.png","pingtai09.png",
+"obstacle01.png","obstacle02.png","obstacle03.png","obstacle05.png","obstacle06.png","obstacle07.png",
+"recover01.png","recover02.png","recover03.png"
+];
+
+const assets={},assetUrls={};
+const PLATFORM_STYLE={firstWidth:360,minWidth:250,maxWidth:390,minHeight:48,maxHeight:120};
+
+function tryLoadImage(src){
+  return new Promise(resolve=>{
+    const image=new Image();
+    image.onload=()=>resolve(image);
+    image.onerror=()=>resolve(null);
+    image.src=src;
+  });
+}
+
+async function loadAsset(name){
+  for(const root of ASSET_ROOTS){
+    const src=root+name;
+    const loaded=await tryLoadImage(src);
+    if(loaded){
+      assets[name]=loaded;
+      assetUrls[name]=src;
+      return loaded;
+    }
+  }
+  const fallbackUrl=ASSET_ROOTS[0]+name;
+  const fallbackImage=new Image();
+  fallbackImage.src=fallbackUrl;
+  assets[name]=fallbackImage;
+  assetUrls[name]=fallbackUrl;
+  return fallbackImage;
+}
+
+async function preloadAssets(){await Promise.all(ASSET_NAMES.map(loadAsset))}
+function url(name){return assetUrls[name]||ASSET_ROOTS[0]+name}
+function img(name){return assets[name]}
+function setBg(el,name){el.style.backgroundImage=`url("${url(name)}")`}
+
+const pages={
+  home:document.getElementById("homePage"),
+  character:document.getElementById("characterPage"),
+  map:document.getElementById("mapPage"),
+  game:document.getElementById("gamePage")
+};
+
+const dom={
+  startBtn:document.getElementById("startBtn"),
+  historyBtn:document.getElementById("historyBtn"),
+  characterBackBtn:document.getElementById("characterBackBtn"),
+  characterPickBtn:document.getElementById("characterPickBtn"),
+  characterBtns:Array.from(document.querySelectorAll(".character-btn")),
+  mapBackBtn:document.getElementById("mapBackBtn"),
+  enterGameBtn:document.getElementById("enterGameBtn"),
+  mapBtns:Array.from(document.querySelectorAll(".map-btn")),
+  scoreHud:document.getElementById("scoreHud"),
+  hpHud:document.getElementById("hpHud"),
+  backHomeBtn:document.getElementById("backHomeBtn"),
+  restartBtn:document.getElementById("restartBtn"),
+  pauseBtn:document.getElementById("pauseBtn"),
+  pauseMask:document.getElementById("pauseMask"),
+  modalMask:document.getElementById("modalMask"),
+  modalTitle:document.getElementById("modalTitle"),
+  modalContent:document.getElementById("modalContent"),
+  modalActions:document.getElementById("modalActions")
+};
+
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+const STORAGE_KEY="douwa_jump_history_v7";
+
+const SCENES=[
+  {id:"beach",name:"夏日沙滩",bg:"game-background01.png",platforms:["pingtai01.png","pingtai02.png","pingtai03.png"],obstacles:["obstacle01.png","obstacle02.png"],recover:"recover01.png"},
+  {id:"forest",name:"神秘森林",bg:"game-background02.png",platforms:["pingtai04.png","pingtai05.png","pingtai06.png"],obstacles:["obstacle03.png","obstacle06.png"],recover:"recover02.png"},
+  {id:"theater",name:"剧场庆典",bg:"game-background03.png",platforms:["pingtai07.png","pingtai08.png","pingtai09.png"],obstacles:["obstacle05.png","obstacle07.png"],recover:"recover03.png"}
+];
+
+const CHARACTERS=[
+  {button:"character01.png",idle:"douwa01.png",move:"douwa02.png"},
+  {button:"character02.png",idle:"douwa07.png",move:"douwa09.png"},
+  {button:"character03.png",idle:"douwa03.png",move:"douwa04.png"},
+  {button:"character04.png",idle:"douwa05.png",move:"douwa06.png"}
+];
+
+let selectedCharacter=null,selectedMap=null;
+const keys={left:false,right:false,up:false,down:false};
+
+const game={
+  running:false,paused:false,ended:false,
+  sceneIndex:0,scene:SCENES[0],characterIndex:0,character:CHARACTERS[0],
+  player:null,platforms:[],coins:[],fallings:[],
+  cameraY:0,topPlatformY:0,
+  score:0,coinsCollected:0,hp:5,
+  lastTime:0,obstacleTimer:0,recoverTimer:0,invincibleTimer:0,operateTimer:0
+};
+
+function showPage(name){
+  Object.values(pages).forEach(page=>page.classList.remove("active"));
+  pages[name].classList.add("active");
+}
+
+function showModal(title,html,actions){
+  dom.modalTitle.textContent=title;
+  dom.modalContent.innerHTML=html;
+  dom.modalActions.innerHTML="";
+  actions.forEach(action=>{
+    const button=document.createElement("button");
+    button.className="modal-btn";
+    button.textContent=action.text;
+    button.onclick=action.onClick;
+    dom.modalActions.appendChild(button);
+  });
+  dom.modalMask.classList.add("active");
+}
+
+function closeModal(){dom.modalMask.classList.remove("active")}
+function readHistory(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]")}catch(e){return []}}
+function saveHistory(list){localStorage.setItem(STORAGE_KEY,JSON.stringify(list))}
+function addHistory(record){const list=readHistory();list.push(record);list.sort((a,b)=>b.score-a.score);saveHistory(list.slice(0,50))}
+
+function showHistory(){
+  const list=readHistory();
+  if(!list.length){
+    showModal("历史分数","暂无分数记录。",[{text:"关闭",onClick:closeModal}]);
+    return;
+  }
+  const rows=list.map((record,index)=>`
+    <tr>
+      <td>${index+1}</td>
+      <td>${record.scene}</td>
+      <td>${record.score}</td>
+      <td>${record.coins}</td>
+      <td>${record.time}</td>
+    </tr>
+  `).join("");
+  showModal("历史分数",`
+    <table class="history-table">
+      <thead>
+        <tr><th>排名</th><th>场景</th><th>分数</th><th>金币</th><th>时间</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `,[
+    {text:"清空",onClick:()=>{saveHistory([]);closeModal()}},
+    {text:"关闭",onClick:closeModal}
+  ]);
+}
+
+function applyUiImages(){
+  setBg(pages.home,"home-background.png");
+  setBg(document.getElementById("homeTitle"),"title.png");
+  setBg(dom.startBtn,"start.png");
+  setBg(dom.historyBtn,"history.png");
+
+  setBg(pages.character,"select-background.png");
+  setBg(document.getElementById("characterTitle"),"select-character.png");
+  setBg(dom.characterBackBtn,"goback.png");
+  setBg(dom.characterPickBtn,"pick.png");
+
+  setBg(pages.map,"select-background.png");
+  setBg(document.getElementById("mapTitle"),"select-map.png");
+  setBg(dom.mapBackBtn,"goback.png");
+  setBg(dom.enterGameBtn,"enter.png");
+
+  dom.characterBtns.forEach((button,index)=>setBg(button,CHARACTERS[index].button));
+  dom.mapBtns.forEach((button,index)=>setBg(button,`map${index+1}.png`));
+
+  setBg(dom.scoreHud,"scores.png");
+  setBg(dom.hpHud,"hp.png");
+  setBg(dom.backHomeBtn,"back.png");
+  setBg(dom.restartBtn,"again.png");
+  setBg(dom.pauseBtn,"stop.png");
+}
+
+function updateCharacterSelect(){
+  dom.characterBtns.forEach((button,index)=>{
+    button.classList.remove("selected-glow","disabled-gray");
+    if(selectedCharacter===null)return;
+    if(index===selectedCharacter)button.classList.add("selected-glow");
+    else button.classList.add("disabled-gray");
+  });
+}
+
+function updateMapSelect(){
+  dom.mapBtns.forEach((button,index)=>{
+    button.classList.remove("selected-glow","disabled-gray");
+    if(selectedMap===null)return;
+    if(index===selectedMap)button.classList.add("selected-glow");
+    else button.classList.add("disabled-gray");
+  });
+}
+
+function rand(min,max){return Math.random()*(max-min)+min}
+function choose(arr){return arr[Math.floor(Math.random()*arr.length)]}
+
+function platformSizeByImage(name,desiredWidth){
+  const image=img(name);
+  let w=desiredWidth,h=82;
+  if(image&&image.complete&&image.naturalWidth&&image.naturalHeight){
+    const ratio=image.naturalHeight/image.naturalWidth;
+    h=w*ratio;
+    if(h>PLATFORM_STYLE.maxHeight){h=PLATFORM_STYLE.maxHeight;w=h/ratio}
+    if(h<PLATFORM_STYLE.minHeight){h=PLATFORM_STYLE.minHeight;w=h/ratio}
+    if(w>PLATFORM_STYLE.maxWidth){w=PLATFORM_STYLE.maxWidth;h=w*ratio}
+    if(w<PLATFORM_STYLE.minWidth){
+      w=PLATFORM_STYLE.minWidth;
+      h=w*ratio;
+      if(h>PLATFORM_STYLE.maxHeight){h=PLATFORM_STYLE.maxHeight;w=h/ratio}
+    }
+  }
+  return {w,h};
+}
+
+function rectsOverlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function playerRect(){const p=game.player;return{x:p.x-p.w/2,y:p.y-p.h/2,w:p.w,h:p.h}}
+function entityScreenY(worldY){return worldY-game.cameraY}
+
+function resetGame(){
+  game.scene=SCENES[game.sceneIndex];
+  game.character=CHARACTERS[game.characterIndex];
+  game.running=true;game.paused=false;game.ended=false;
+  game.cameraY=0;game.topPlatformY=H-110;
+  game.score=0;game.coinsCollected=0;game.hp=5;
+  game.lastTime=performance.now();
+  game.obstacleTimer=1.5;game.recoverTimer=8;game.invincibleTimer=0;game.operateTimer=0;
+
+  game.player={
+    x:W/2,y:H-400,prevY:H-400,
+    w:170,h:215,vx:0,vy:0,speed:14,
+    grounded:false,jumpsUsed:0,facing:1
+  };
+
+  game.platforms=[];game.coins=[];game.fallings=[];
+  createInitialPlatforms();
+  updateHud();
+  dom.pauseMask.classList.remove("active");
+}
+
+function createInitialPlatforms(){
+  const firstPlatformName=game.scene.platforms[0];
+  const firstPlatformSize=platformSizeByImage(firstPlatformName,PLATFORM_STYLE.firstWidth);
+  game.platforms.push({
+    x:W/2-firstPlatformSize.w/2,
+    y:H-170,
+    w:firstPlatformSize.w,
+    h:firstPlatformSize.h,
+    imgName:firstPlatformName,
+    moving:false,
+    vx:0,
+    spring:false
+  });
+  game.topPlatformY=H-280;
+  while(game.topPlatformY>-420)addPlatformAbove();
+}
+
+function addPlatformAbove(){
+  const gap=rand(165,275);
+  game.topPlatformY-=gap;
+  const platformImageName=choose(game.scene.platforms);
+  const desiredWidth=rand(PLATFORM_STYLE.minWidth,PLATFORM_STYLE.maxWidth);
+  const platformSize=platformSizeByImage(platformImageName,desiredWidth);
+  const x=rand(45,W-platformSize.w-45);
+  const moving=Math.random()<.38;
+  const spring=Math.random()<.16;
+
+  const platform={
+    x,y:game.topPlatformY,
+    w:platformSize.w,h:platformSize.h,
+    imgName:platformImageName,
+    moving,
+    vx:moving?choose([-1,1])*rand(1.4,3.4):0,
+    spring
+  };
+  game.platforms.push(platform);
+
+  if(Math.random()<.62){
+    game.coins.push({
+      x:x+platformSize.w/2-32,
+      y:platform.y-82,
+      w:64,h:64,
+      collected:false
+    });
+  }
+}
+
+function updateHud(){
+  dom.scoreHud.textContent=game.score;
+  let html="";
+  for(let i=0;i<5;i++){
+    html+=i<game.hp?`<span class="hp-heart">❤</span>`:`<span class="hp-heart-empty">❤</span>`;
+  }
+  dom.hpHud.innerHTML=html;
+}
+
+function startGame(sceneIndex){
+  game.sceneIndex=sceneIndex;
+  game.characterIndex=selectedCharacter??0;
+  resetGame();
+  showPage("game");
+  requestAnimationFrame(loop);
+}
+
+function tryJump(forceSecondJump){
+  if(!game.running||game.paused||game.ended)return;
+  const p=game.player;
+  if(p.grounded){
+    p.vy=-29;
+    p.grounded=false;
+    p.jumpsUsed=1;
+    game.operateTimer=.18;
+    return;
+  }
+  if(forceSecondJump&&p.jumpsUsed<2){
+    p.vy=-27;
+    p.jumpsUsed=2;
+    game.operateTimer=.18;
+  }
+}
+
+function loop(now){
+  if(!game.running)return;
+  const dt=Math.min(.033,(now-game.lastTime)/1000);
+  game.lastTime=now;
+  if(!game.paused&&!game.ended)update(dt);
+  draw();
+  if(game.running)requestAnimationFrame(loop);
+}
+
+function update(dt){
+  const p=game.player;
+  p.prevY=p.y;
+
+  if(game.invincibleTimer>0)game.invincibleTimer-=dt;
+  if(game.operateTimer>0)game.operateTimer-=dt;
+
+  let targetVX=0;
+  if(keys.left)targetVX-=p.speed;
+  if(keys.right)targetVX+=p.speed;
+  p.vx=targetVX===0?0:targetVX;
+
+  if(keys.down)p.vy+=.65;
+
+  p.x+=p.vx;
+  p.y+=p.vy;
+  p.vy+=1.05;
+
+  if(p.x<p.w/2)p.x=p.w/2;
+  if(p.x>W-p.w/2)p.x=W-p.w/2;
+  if(Math.abs(p.vx)>.5)p.facing=p.vx>0?1:-1;
+
+  p.grounded=false;
+
+  updatePlatforms();
+  handlePlatformCollision();
+  updateCamera();
+  generateWorld();
+  updateCoins();
+  updateFallings();
+  spawnFallings(dt);
+  cleanupWorld();
+
+  const playerScreenBottom=p.y+p.h/2-game.cameraY;
+  if(playerScreenBottom>H+100)endGame("豆娃掉下去了！");
+
+  updateHud();
+}
+
+function updatePlatforms(){
+  for(const platform of game.platforms){
+    if(!platform.moving)continue;
+    platform.x+=platform.vx;
+    if(platform.x<20){platform.x=20;platform.vx*=-1}
+    if(platform.x+platform.w>W-20){platform.x=W-20-platform.w;platform.vx*=-1}
+  }
+}
+
+function handlePlatformCollision(){
+  const p=game.player;
+  const prevBottom=p.prevY+p.h/2;
+  const currBottom=p.y+p.h/2;
+  if(p.vy<0)return;
+
+  for(const platform of game.platforms){
+    const footX1=p.x-p.w*.34;
+    const footX2=p.x+p.w*.34;
+    const overlapX=footX2>platform.x&&footX1<platform.x+platform.w;
+    const crossed=prevBottom<=platform.y+18&&currBottom>=platform.y;
+    const notTooDeep=currBottom<=platform.y+platform.h+35;
+
+    if(overlapX&&crossed&&notTooDeep){
+      p.y=platform.y-p.h/2;
+      p.grounded=true;
+      p.jumpsUsed=0;
+
+      if(platform.spring){
+        p.vy=-41;
+        p.grounded=false;
+        p.jumpsUsed=1;
+        game.operateTimer=.18;
+      }else{
+        p.vy=0;
+      }
+      return;
+    }
+  }
+}
+
+function updateCamera(){
+  const p=game.player;
+  const targetCameraY=Math.min(game.cameraY,p.y-H*.42);
+  game.cameraY+=(targetCameraY-game.cameraY)*.12;
+}
+
+function generateWorld(){
+  while(game.topPlatformY>game.cameraY-520)addPlatformAbove();
+}
+
+function updateCoins(){
+  const playerBox=playerRect();
+  for(const coin of game.coins){
+    if(coin.collected)continue;
+    const coinBox={x:coin.x,y:coin.y,w:coin.w,h:coin.h};
+    if(rectsOverlap(playerBox,coinBox)){
+      coin.collected=true;
+      game.coinsCollected+=1;
+      game.score+=10;
+    }
+  }
+}
+
+function spawnFallings(dt){
+  game.obstacleTimer-=dt;
+  game.recoverTimer-=dt;
+
+  if(game.obstacleTimer<=0){
+    game.obstacleTimer=rand(1.4,2.8);
+    const size=rand(90,145);
+    game.fallings.push({
+      type:"obstacle",
+      x:rand(60,W-60-size),
+      y:game.cameraY-rand(180,420),
+      w:size,h:size,
+      vy:rand(6.5,10.5),
+      vx:rand(-1.4,1.4),
+      imgName:choose(game.scene.obstacles),
+      rotate:rand(0,Math.PI*2),
+      spin:rand(-.04,.04),
+      hit:false
+    });
+  }
+
+  if(game.recoverTimer<=0){
+    game.recoverTimer=rand(9,15);
+    const size=105;
+    game.fallings.push({
+      type:"recover",
+      x:rand(70,W-70-size),
+      y:game.cameraY-rand(180,420),
+      w:size,h:size,
+      vy:rand(4.5,7.5),
+      vx:rand(-.8,.8),
+      imgName:game.scene.recover,
+      rotate:0,
+      spin:.02,
+      hit:false
+    });
+  }
+}
+
+function updateFallings(){
+  const playerBox=playerRect();
+  for(const item of game.fallings){
+    item.x+=item.vx;
+    item.y+=item.vy;
+    item.rotate+=item.spin;
+
+    if(item.x<0||item.x+item.w>W)item.vx*=-1;
+    if(item.hit)continue;
+
+    const itemBox={x:item.x,y:item.y,w:item.w,h:item.h};
+    if(rectsOverlap(playerBox,itemBox)){
+      item.hit=true;
+
+      if(item.type==="obstacle"){
+        if(game.invincibleTimer<=0){
+          game.hp-=1;
+          game.invincibleTimer=1.15;
+          if(game.hp<=0){
+            game.hp=0;
+            endGame("生命值耗尽！");
+          }
+        }
+      }
+
+      if(item.type==="recover"){
+        game.hp=Math.min(5,game.hp+1);
+      }
+    }
+  }
+}
+
+function cleanupWorld(){
+  game.platforms=game.platforms.filter(platform=>entityScreenY(platform.y)<H+220);
+  game.coins=game.coins.filter(coin=>!coin.collected&&entityScreenY(coin.y)<H+220);
+  game.fallings=game.fallings.filter(item=>!item.hit&&entityScreenY(item.y)<H+260);
+}
+
+function endGame(reason){
+  if(game.ended)return;
+  game.ended=true;
+  game.running=false;
+
+  const now=new Date();
+  const timeText=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+
+  addHistory({
+    scene:game.scene.name,
+    score:game.score,
+    coins:game.coinsCollected,
+    time:timeText
+  });
+
+  showModal("游戏结束",`
+    <div style="font-size:34px;font-weight:900;margin-bottom:18px;">${reason}</div>
+    <div>场景：${game.scene.name}</div>
+    <div>金币：${game.coinsCollected} 个</div>
+    <div>得分：${game.score} 分</div>
+  `,[
+    {
+      text:"再来一次",
+      onClick:()=>{
+        closeModal();
+        resetGame();
+        game.running=true;
+        game.lastTime=performance.now();
+        requestAnimationFrame(loop);
+      }
+    },
+    {
+      text:"返回首页",
+      onClick:()=>{
+        closeModal();
+        showPage("home");
+      }
+    }
+  ]);
+}
+
+function drawCoverImage(image,x,y,w,h){
+  if(!image||!image.complete||!image.naturalWidth){
+    ctx.fillStyle="#9ed9ff";
+    ctx.fillRect(x,y,w,h);
+    return;
+  }
+
+  const iw=image.naturalWidth;
+  const ih=image.naturalHeight;
+  const imageRatio=iw/ih;
+  const rectRatio=w/h;
+
+  let sx,sy,sw,sh;
+
+  if(imageRatio>rectRatio){
+    sh=ih;
+    sw=ih*rectRatio;
+    sx=(iw-sw)/2;
+    sy=0;
+  }else{
+    sw=iw;
+    sh=iw/rectRatio;
+    sx=0;
+    sy=(ih-sh)/2;
+  }
+
+  ctx.drawImage(image,sx,sy,sw,sh,x,y,w,h);
+}
+
+function drawImageFit(image,x,y,w,h,flipX=false,alpha=1,rotation=0){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+
+  if(rotation){
+    ctx.translate(x+w/2,y+h/2);
+    ctx.rotate(rotation);
+    x=-w/2;
+    y=-h/2;
+  }
+
+  if(flipX){
+    ctx.translate(x+w,y);
+    ctx.scale(-1,1);
+    x=0;
+    y=0;
+  }
+
+  if(image&&image.complete&&image.naturalWidth){
+    ctx.drawImage(image,x,y,w,h);
+  }else{
+    ctx.fillStyle="#ffcb3d";
+    ctx.fillRect(x,y,w,h);
+  }
+
+  ctx.restore();
+}
+
+const processedImageCache=new WeakMap();
+
+function isCharacterBackgroundPixel(data,index){
+  const r=data[index],g=data[index+1],b=data[index+2],a=data[index+3];
+  if(a<=15)return true;
+
+  const max=Math.max(r,g,b);
+  const min=Math.min(r,g,b);
+  const diff=max-min;
+
+  const pureWhiteLike=r>225&&g>225&&b>225&&diff<55;
+  const lightGrayWhiteLike=r>185&&g>185&&b>185&&diff<75;
+  const lightBlueWhiteLike=r>170&&g>185&&b>185&&diff<95;
+  const lowAlphaLight=a<180&&max>170&&diff<100;
+
+  return pureWhiteLike||lightGrayWhiteLike||lightBlueWhiteLike||lowAlphaLight;
+}
+
+function getProcessedCharacterImage(image){
+  if(!image||!image.complete||!image.naturalWidth||!image.naturalHeight)return null;
+  if(processedImageCache.has(image))return processedImageCache.get(image);
+
+  const sourceW=image.naturalWidth;
+  const sourceH=image.naturalHeight;
+  const offCanvas=document.createElement("canvas");
+  offCanvas.width=sourceW;
+  offCanvas.height=sourceH;
+
+  const offCtx=offCanvas.getContext("2d",{willReadFrequently:true});
+
+  try{
+    offCtx.drawImage(image,0,0);
+
+    const imageData=offCtx.getImageData(0,0,sourceW,sourceH);
+    const data=imageData.data;
+    const total=sourceW*sourceH;
+    const visited=new Uint8Array(total);
+    const queue=[];
+
+    function pushIfBackground(x,y){
+      if(x<0||y<0||x>=sourceW||y>=sourceH)return;
+
+      const id=y*sourceW+x;
+      if(visited[id])return;
+
+      const dataIndex=id*4;
+
+      if(isCharacterBackgroundPixel(data,dataIndex)){
+        visited[id]=1;
+        queue.push(id);
+      }
+    }
+
+    for(let x=0;x<sourceW;x++){
+      pushIfBackground(x,0);
+      pushIfBackground(x,sourceH-1);
+    }
+
+    for(let y=0;y<sourceH;y++){
+      pushIfBackground(0,y);
+      pushIfBackground(sourceW-1,y);
+    }
+
+    let head=0;
+
+    while(head<queue.length){
+      const id=queue[head++];
+      const x=id%sourceW;
+      const y=Math.floor(id/sourceW);
+
+      pushIfBackground(x+1,y);
+      pushIfBackground(x-1,y);
+      pushIfBackground(x,y+1);
+      pushIfBackground(x,y-1);
+    }
+
+    for(let pass=0;pass<2;pass++){
+      const toRemove=[];
+
+      for(let y=1;y<sourceH-1;y++){
+        for(let x=1;x<sourceW-1;x++){
+          const id=y*sourceW+x;
+          if(visited[id])continue;
+
+          const dataIndex=id*4;
+          if(!isCharacterBackgroundPixel(data,dataIndex))continue;
+
+          const nearRemoved=
+            visited[id-1]||
+            visited[id+1]||
+            visited[id-sourceW]||
+            visited[id+sourceW]||
+            visited[id-sourceW-1]||
+            visited[id-sourceW+1]||
+            visited[id+sourceW-1]||
+            visited[id+sourceW+1];
+
+          if(nearRemoved)toRemove.push(id);
+        }
+      }
+
+      for(const id of toRemove)visited[id]=1;
+    }
+
+    let minX=sourceW,minY=sourceH,maxX=-1,maxY=-1;
+
+    for(let y=0;y<sourceH;y++){
+      for(let x=0;x<sourceW;x++){
+        const id=y*sourceW+x;
+        const dataIndex=id*4;
+
+        if(visited[id]){
+          data[dataIndex+3]=0;
+          continue;
+        }
+
+        const alpha=data[dataIndex+3];
+
+        if(alpha>10){
+          if(x<minX)minX=x;
+          if(y<minY)minY=y;
+          if(x>maxX)maxX=x;
+          if(y>maxY)maxY=y;
+        }
+      }
+    }
+
+    offCtx.putImageData(imageData,0,0);
+
+    if(maxX<minX||maxY<minY){
+      const result={canvas:offCanvas,sx:0,sy:0,sw:sourceW,sh:sourceH};
+      processedImageCache.set(image,result);
+      return result;
+    }
+
+    const padding=2;
+    minX=Math.max(0,minX-padding);
+    minY=Math.max(0,minY-padding);
+    maxX=Math.min(sourceW-1,maxX+padding);
+    maxY=Math.min(sourceH-1,maxY+padding);
+
+    const result={
+      canvas:offCanvas,
+      sx:minX,
+      sy:minY,
+      sw:maxX-minX+1,
+      sh:maxY-minY+1
+    };
+
+    processedImageCache.set(image,result);
+    return result;
+  }catch(error){
+    const result={canvas:image,sx:0,sy:0,sw:sourceW,sh:sourceH};
+    processedImageCache.set(image,result);
+    return result;
+  }
+}
+
+function drawCharacterImage(image,x,y,w,h,flipX=false,alpha=1){
+  if(!image||!image.complete||!image.naturalWidth){
+    drawImageFit(image,x,y,w,h,flipX,alpha);
+    return;
+  }
+
+  const processed=getProcessedCharacterImage(image);
+
+  if(!processed){
+    drawImageFit(image,x,y,w,h,flipX,alpha);
+    return;
+  }
+
+  const sourceRatio=processed.sw/processed.sh;
+  const targetRatio=w/h;
+
+  let drawW,drawH;
+
+  if(sourceRatio>targetRatio){
+    drawW=w;
+    drawH=w/sourceRatio;
+  }else{
+    drawH=h;
+    drawW=h*sourceRatio;
+  }
+
+  const drawX=x+(w-drawW)/2;
+  const drawY=y+(h-drawH)/2;
+
+  ctx.save();
+  ctx.globalAlpha=alpha;
+
+  if(flipX){
+    ctx.translate(drawX+drawW,drawY);
+    ctx.scale(-1,1);
+
+    ctx.drawImage(
+      processed.canvas,
+      processed.sx,
+      processed.sy,
+      processed.sw,
+      processed.sh,
+      0,
+      0,
+      drawW,
+      drawH
+    );
+  }else{
+    ctx.drawImage(
+      processed.canvas,
+      processed.sx,
+      processed.sy,
+      processed.sw,
+      processed.sh,
+      drawX,
+      drawY,
+      drawW,
+      drawH
+    );
+  }
+
+  ctx.restore();
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  drawCoverImage(img(game.scene.bg),0,0,W,H);
+
+  if(!game.player)return;
+
+  drawPlatforms();
+  drawCoins();
+  drawFallings();
+  drawPlayer();
+}
+
+function drawPlatforms(){
+  for(const platform of game.platforms){
+    const sy=entityScreenY(platform.y);
+
+    if(sy>H+180||sy<-220)continue;
+
+    drawImageFit(img(platform.imgName),platform.x,sy,platform.w,platform.h);
+
+    if(platform.spring){
+      drawSpring(platform.x+platform.w/2-45,sy-48,90,58);
+    }
+  }
+}
+
+function drawSpring(x,y,w,h){
+  ctx.save();
+
+  ctx.fillStyle="#d81616";
+  ctx.strokeStyle="#fff";
+  ctx.lineWidth=8;
+
+  ctx.beginPath();
+  ctx.roundRect(x,y+h-18,w,22,10);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle="#e31b1b";
+  ctx.lineWidth=10;
+  ctx.beginPath();
+
+  const steps=5;
+
+  for(let i=0;i<=steps;i++){
+    const px=x+(i/steps)*w;
+    const py=y+10+(i%2===0?0:h-30);
+
+    if(i===0)ctx.moveTo(px,py);
+    else ctx.lineTo(px,py);
+  }
+
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCoins(){
+  const coinImage=img("coin.png");
+
+  for(const coin of game.coins){
+    if(coin.collected)continue;
+
+    const sy=entityScreenY(coin.y);
+
+    if(sy>H+150||sy<-150)continue;
+
+    const pulse=Math.sin(performance.now()/160+coin.x*.01)*.08+1;
+    const size=coin.w*pulse;
+
+    drawImageFit(
+      coinImage,
+      coin.x+coin.w/2-size/2,
+      sy+coin.h/2-size/2,
+      size,
+      size
+    );
+  }
+}
+
+function drawFallings(){
+  for(const item of game.fallings){
+    const sy=entityScreenY(item.y);
+
+    if(sy>H+180||sy<-220)continue;
+
+    drawImageFit(
+      img(item.imgName),
+      item.x,
+      sy,
+      item.w,
+      item.h,
+      false,
+      1,
+      item.rotate
+    );
+  }
+}
+
+function drawPlayer(){
+  const p=game.player;
+  const sy=entityScreenY(p.y);
+  const sx=p.x;
+
+  const operating=keys.left||keys.right||keys.up||keys.down||game.operateTimer>0;
+  const imageName=operating?game.character.move:game.character.idle;
+
+  let alpha=1;
+
+  if(game.invincibleTimer>0){
+    alpha=Math.floor(performance.now()/90)%2===0?.42:1;
+  }
+
+  drawCharacterImage(
+    img(imageName),
+    sx-p.w/2,
+    sy-p.h/2,
+    p.w,
+    p.h,
+    p.facing<0,
+    alpha
+  );
+}
+
+function togglePause(){
+  if(!game.running||game.ended)return;
+
+  game.paused=!game.paused;
+  dom.pauseMask.classList.toggle("active",game.paused);
+
+  if(!game.paused){
+    game.lastTime=performance.now();
+  }
+}
+
+function initEvents(){
+  dom.startBtn.addEventListener("click",()=>{
+    selectedCharacter=null;
+    updateCharacterSelect();
+    showPage("character");
+  });
+
+  dom.historyBtn.addEventListener("click",showHistory);
+
+  dom.characterBackBtn.addEventListener("click",()=>showPage("home"));
+
+  dom.characterPickBtn.addEventListener("click",()=>{
+    if(selectedCharacter===null){
+      showModal("提示","请先选择一个角色。",[{text:"知道了",onClick:closeModal}]);
+      return;
+    }
+
+    selectedMap=null;
+    updateMapSelect();
+    showPage("map");
+  });
+
+  dom.characterBtns.forEach(button=>{
+    button.addEventListener("click",()=>{
+      selectedCharacter=Number(button.dataset.character);
+      updateCharacterSelect();
+    });
+  });
+
+  dom.mapBackBtn.addEventListener("click",()=>showPage("character"));
+
+  dom.enterGameBtn.addEventListener("click",()=>{
+    if(selectedMap===null){
+      showModal("提示","请先选择一个场景。",[{text:"知道了",onClick:closeModal}]);
+      return;
+    }
+
+    closeModal();
+    startGame(selectedMap);
+  });
+
+  dom.mapBtns.forEach(button=>{
+    button.addEventListener("click",()=>{
+      selectedMap=Number(button.dataset.map);
+      updateMapSelect();
+    });
+  });
+
+  dom.backHomeBtn.addEventListener("click",()=>{
+    if(!game.running){
+      showPage("home");
+      return;
+    }
+
+    showModal("返回首页","当前游戏进度不会保存，确定返回首页吗？",[
+      {text:"取消",onClick:closeModal},
+      {
+        text:"确定",
+        onClick:()=>{
+          closeModal();
+          game.running=false;
+          game.paused=false;
+          game.ended=false;
+          dom.pauseMask.classList.remove("active");
+          showPage("home");
+        }
+      }
+    ]);
+  });
+
+  dom.restartBtn.addEventListener("click",()=>{
+    if(!pages.game.classList.contains("active"))return;
+
+    showModal("重新开始","确定重新开始当前场景吗？",[
+      {text:"取消",onClick:closeModal},
+      {
+        text:"确定",
+        onClick:()=>{
+          closeModal();
+          resetGame();
+          game.running=true;
+          game.lastTime=performance.now();
+          requestAnimationFrame(loop);
+        }
+      }
+    ]);
+  });
+
+  dom.pauseBtn.addEventListener("click",togglePause);
+  dom.pauseMask.addEventListener("click",togglePause);
+
+  window.addEventListener("keydown",event=>{
+    if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"].includes(event.code)){
+      event.preventDefault();
+      game.operateTimer=.18;
+    }
+
+    if(event.code==="ArrowLeft")keys.left=true;
+    if(event.code==="ArrowRight")keys.right=true;
+    if(event.code==="ArrowDown")keys.down=true;
+
+    if(event.code==="ArrowUp"){
+      if(!keys.up)tryJump(false);
+      keys.up=true;
+    }
+
+    if(event.code==="Space"&&!event.repeat){
+      tryJump(true);
+    }
+
+    if(event.code==="Escape"){
+      togglePause();
+    }
+  },{passive:false});
+
+  window.addEventListener("keyup",event=>{
+    if(event.code==="ArrowLeft")keys.left=false;
+    if(event.code==="ArrowRight")keys.right=false;
+    if(event.code==="ArrowUp")keys.up=false;
+    if(event.code==="ArrowDown")keys.down=false;
+  });
+
+  window.addEventListener("blur",()=>{
+    keys.left=false;
+    keys.right=false;
+    keys.up=false;
+    keys.down=false;
+  });
+}
+
+async function boot(){
+  await preloadAssets();
+
+  applyUiImages();
+  initEvents();
+  updateCharacterSelect();
+  updateMapSelect();
+
+  game.scene=SCENES[0];
+  game.character=CHARACTERS[0];
+
+  updateHud();
+  draw();
+}
+
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    const radius=Math.min(r,w/2,h/2);
+
+    this.beginPath();
+    this.moveTo(x+radius,y);
+    this.arcTo(x+w,y,x+w,y+h,radius);
+    this.arcTo(x+w,y+h,x,y+h,radius);
+    this.arcTo(x,y+h,x,y,radius);
+    this.arcTo(x,y,x+w,y,radius);
+    this.closePath();
+
+    return this;
+  };
+}
+
+boot();
+</script>
+</body>
+</html>
